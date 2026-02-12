@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중앙 일보</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Nanum Myeongjo', serif;
+  background: linear-gradient(rgba(245,222,179,0.85), rgba(245,222,179,0.85)),
+              url('https://www.transparenttextures.com/patterns/old-mathematics.png');
+  background-size: cover;
+}
+
+header {
+  background: #2c1b0f;
+  color: #f8e7c9;
+  padding: 12px;
+  text-align: center;
+  border-bottom: 3px solid #8b5e3c;
+  position: relative;
+}
+
+.logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-area img {
+  height: 50px;
+}
+
+.logo-text {
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.categories {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  font-weight: bold;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+.categories div:hover {
+  color: gold;
+  cursor: pointer;
+}
+
+.home-btn {
+  position: absolute;
+  left: 10px;
+  top: 15px;
+  background: #8b0000;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.admin-btn {
+  position: absolute;
+  right: 10px;
+  top: 15px;
+  background: #8b0000;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.today-quote {
+  background: #f5deb3;
+  padding: 10px;
+  text-align: center;
+  font-size: 15px;
+  border-bottom: 2px solid #8b5e3c;
+}
+
+#timeDisplay {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+main { padding: 15px; }
+.main-articles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.article {
+  background: #fff8dc;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #c2a679;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  font-size: 14px;
+}
+.article h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+}
+footer {
+  background: #2c1b0f;
+  color: #f8e7c9;
+  padding: 15px;
+  text-align: center;
+  font-size: 14px;
+  margin-top: 20px;
+  border-top: 3px solid #8b5e3c;
+}
+
+#adminPanel {
+  display: none;
+  padding: 15px;
+}
+
+#adminPanel input,
+#adminPanel textarea,
+#adminPanel select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  border: 1px solid #8b5e3c;
+  background: #fffaf0;
+}
+
+#adminPanel button {
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background: #8b0000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.admin-article {
+  background: #fff8dc;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border: 1px solid #c2a679;
+}
+
+@media (max-width: 600px) {
+  .main-articles { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="home-btn" onclick="filterCategory('all')">홈</button>
+  <div class="logo-area">
+    <img src="logo.png" alt="로고">
+    <div class="logo-text">중앙 일보</div>
+    <div class="categories">
+      <div onclick="filterCategory('현실')">현실</div>
+      <div onclick="filterCategory('조선')">조선</div>
+    </div>
+  </div>
+  <button class="admin-btn" onclick="checkPassword()">관리자</button>
+</header>
+
+<div class="today-quote" id="todayQuote"></div>
+<div id="timeDisplay"></div>
+
+<main id="mainView">
+  <h3>주요 기사</h3>
+  <div class="main-articles" id="mainArticles"></div>
+</main>
+
+<div id="adminPanel">
+  <h3>관리자 페이지</h3>
+  <h4>오늘의 한마디 수정</h4>
+  <input type="text" id="quoteInput" />
+  <button onclick="updateQuote()">저장</button>
+
+  <hr>
+
+  <h4>기사 작성 / 수정</h4>
+  <input type="hidden" id="editIndex" />
+  <input type="text" id="titleInput" placeholder="기사 제목" />
+  <textarea id="contentInput" rows="4" placeholder="기사 내용"></textarea>
+  <select id="categoryInput">
+    <option value="현실">현실</option>
+    <option value="조선">조선</option>
+  </select>
+  <button onclick="saveArticle()">저장</button>
+
+  <hr>
+
+  <h4>기사 목록</h4>
+  <div id="adminArticles"></div>
+  <button onclick="closeAdmin()">기본 화면으로 돌아가기</button>
+</div>
+
+<footer>
+  <a href="https://open.kakao.com/o/soBmTyIh" target="_blank" style="color:gold;text-decoration:none;">
+    기사 제보는 송수일
+  </a>
+</footer>
+
+<script>
+const ADMIN_PASSWORD = "lee090223!";
+let articles = JSON.parse(localStorage.getItem('articles')) || [];
+let todayQuote = localStorage.getItem('todayQuote') || "세상을 보는 눈을 넓히자.";
+
+document.getElementById('todayQuote').innerText = "오늘의 한마디: " + todayQuote;
+
+function checkPassword() {
+  const input = prompt("관리자 비밀번호를 입력하세요");
+  if (input === ADMIN_PASSWORD) openAdmin();
+  else alert("비밀번호가 틀렸습니다.");
+}
+
+function renderMain(category=null) {
+  const container = document.getElementById('mainArticles');
+  container.innerHTML = '';
+  let display = category==='all' || !category ? articles : articles.filter(a=>a.category===category);
+  display.slice(0,4).forEach((a,i)=>{
+    const div = document.createElement('div');
+    div.className='article';
+    div.innerHTML=`<h3>${a.title}</h3><div>${a.content.substring(0,50)}...</div><div>분류: ${a.category}</div><div>조회수: ${a.views}</div>`;
+    div.onclick=()=>openArticle(i);
+    container.appendChild(div);
+  });
+}
+
+function openArticle(i){
+  articles[i].views++;
+  localStorage.setItem('articles',JSON.stringify(articles));
+  alert(articles[i].title+"\n\n"+articles[i].content);
+  renderMain();
+}
+
+function filterCategory(c){ renderMain(c); }
+
+function openAdmin(){
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('adminPanel').style.display='block';
+  document.getElementById('quoteInput').value=todayQuote;
+  renderAdminArticles();
+}
+
+function closeAdmin(){
+  document.getElementById('adminPanel').style.display='none';
+  document.getElementById('mainView').style.display='block';
+  renderMain();
+}
+
+function updateQuote(){
+  todayQuote=document.getElementById('quoteInput').value;
+  localStorage.setItem('todayQuote',todayQuote);
+  document.getElementById('todayQuote').innerText="오늘의 한마디: "+todayQuote;
+  alert('수정 완료');
+}
+
+function saveArticle(){
+  const title=document.getElementById('titleInput').value;
+  const content=document.getElementById('contentInput').value;
+  const category=document.getElementById('categoryInput').value;
+  const editIndex=document.getElementById('editIndex').value;
+  if(!title||!content){ alert('제목과 내용 입력'); return; }
+  if(editIndex==='') articles.unshift({title,content,category,views:0});
+  else { articles[editIndex].title=title; articles[editIndex].content=content; articles[editIndex].category=category; }
+  localStorage.setItem('articles',JSON.stringify(articles));
+  clearForm(); renderAdminArticles(); renderMain();
+}
+
+function renderAdminArticles(){
+  const container=document.getElementById('adminArticles'); container.innerHTML='';
+  articles.forEach((a,i)=>{
+    const div=document.createElement('div'); div.className='admin-article';
+    div.innerHTML=`<strong>${a.title}</strong> (${a.category}) - 조회수:${a.views}<br><button onclick="editArticle(${i})">수정</button> <button onclick="deleteArticle(${i})">삭제</button>`;
+    container.appendChild(div);
+  });
+}
+
+function editArticle(i){
+  const a=articles[i];
+  document.getElementById('titleInput').value=a.title;
+  document.getElementById('contentInput').value=a.content;
+  document.getElementById('categoryInput').value=a.category;
+  document.getElementById('editIndex').value=i;
+}
+
+function deleteArticle(i){
+  if(confirm('삭제하시겠습니까?')){
+    articles.splice(i,1);
+    localStorage.setItem('articles',JSON.stringify(articles));
+    renderAdminArticles(); renderMain();
+  }
+}
+
+function clearForm(){
+  document.getElementById('titleInput').value='';
+  document.getElementById('contentInput').value='';
+  document.getElementById('categoryInput').value='현실';
+  document.getElementById('editIndex').value='';
+}
+
+function updateTime(){
+  const now = new Date();
+  const koreaTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+  const y = koreaTime.getFullYear();
+  const m = String(koreaTime.getMonth()+1).padStart(2,'0');
+  const d = String(koreaTime.getDate()).padStart(2,'0');
+  const h = String(koreaTime.getHours()).padStart(2,'0');
+  const min = String(koreaTime.getMinutes()).padStart(2,'0');
+  const s = String(koreaTime.getSeconds()).padStart(2,'0');
+  document.getElementById('timeDisplay').innerText = `${y}년 ${m}월 ${d}일 ${h}시 ${min}분 ${s}초`;
+}
+
+setInterval(updateTime,1000);
+renderMain('all');
+</script>
+
+</body>
+</html>
